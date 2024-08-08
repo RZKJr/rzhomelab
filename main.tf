@@ -1,65 +1,65 @@
-# Configure the Microsoft Azure provider
-provider "azurerm" {
-  features {}
-}
-
-# Create a Resource Group if it doesn’t exist
-resource "azurerm_resource_group" "tfexample" {
-  name     = "my-terraform-rg"
+resource "azurerm_resource_group" "demo_rg" {
+  name     = "RG_RnD_Demo_Terraform"
   location = "West Europe"
 }
 
-# Create a Virtual Network
-resource "azurerm_virtual_network" "tfexample" {
-  name                = "my-terraform-vnet"
-  location            = azurerm_resource_group.tfexample.location
-  resource_group_name = azurerm_resource_group.tfexample.name
+resource "azurerm_virtual_network" "demo_vnet" {
+  name                = "vnet_terr_demo"
   address_space       = ["10.0.0.0/16"]
+  location            = azurerm_resource_group.demo_rg.location
+  resource_group_name = azurerm_resource_group.demo_rg.name
 }
 
-# Create a Subnet in the Virtual Network
-resource "azurerm_subnet" "tfexample" {
-  name                 = "my-terraform-subnet"
-  resource_group_name  = azurerm_resource_group.tfexample.name
-  virtual_network_name = azurerm_virtual_network.tfexample.name
+resource "azurerm_subnet" "demo_subnet1" {
+  name                 = "vm_terr_demo"
+  resource_group_name  = azurerm_resource_group.demo_rg.name
+  virtual_network_name = azurerm_virtual_network.demo_vnet.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_subnet" "demo_subnet2" {
+  name                 = "db_terr_demo"
+  resource_group_name  = azurerm_resource_group.demo_rg.name
+  virtual_network_name = azurerm_virtual_network.demo_vnet.name
   address_prefixes     = ["10.0.2.0/24"]
 }
 
-# Create a Network Interface
-resource "azurerm_network_interface" "tfexample" {
-  name                = "my-terraform-nic"
-  location            = azurerm_resource_group.tfexample.location
-  resource_group_name = azurerm_resource_group.tfexample.name
+resource "azurerm_network_interface" "demo_nic" {
+  name                = "vm_terr_demo"
+  location            = azurerm_resource_group.demo_rg.location
+  resource_group_name = azurerm_resource_group.demo_rg.name
 
   ip_configuration {
-    name                          = "my-terraform-nic-ip-config"
-    subnet_id                     = azurerm_subnet.tfexample.id
+    name                          = "vm_demo"
+    subnet_id                     = azurerm_subnet.demo_subnet1.id
     private_ip_address_allocation = "Dynamic"
   }
 }
 
-# Create a Virtual Machine
-resource "azurerm_linux_virtual_machine" "tfexample" {
-  name                            = "my-terraform-vm"
-  location                        = azurerm_resource_group.tfexample.location
-  resource_group_name             = azurerm_resource_group.tfexample.name
-  network_interface_ids           = [azurerm_network_interface.tfexample.id]
-  size                            = "Standard_DS1_v2"
-  computer_name                   = "myvm"
-  admin_username                  = "azureuser"
-  admin_password                  = "Password1234!"
-  disable_password_authentication = false
+resource "azurerm_linux_virtual_machine" "demo_vm" {
+  name                = "vmdemo"
+  resource_group_name = azurerm_resource_group.demo_rg.name
+  location            = azurerm_resource_group.demo_rg.location
+  size                = "Standard_F2"
+  admin_username      = "adminuser"
+  network_interface_ids = [
+    azurerm_network_interface.demo_nic.id,
+  ]
 
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "18.04-LTS"
-    version   = "latest"
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = file("~/.ssh/id_rsa.pub")
   }
 
   os_disk {
-    name                 = "my-terraform-os-disk"
-    storage_account_type = "Standard_LRS"
     caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
   }
 }
