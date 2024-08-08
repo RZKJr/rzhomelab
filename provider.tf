@@ -7,7 +7,7 @@ terraform {
     }
     azure = {
       source  = "hashicorp/azurerm"
-      version = "~> 2.0" # Specify the required Azure provider version constraint
+      version = "~> 5.0" # Specify the required Azure provider version constraint
     }
     # Add more providers with their respective version constraints if needed
   }
